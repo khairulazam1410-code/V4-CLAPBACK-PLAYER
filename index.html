@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pemain - Clapback</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #2c3e50; color: white; text-align: center; padding: 15px; margin: 0; min-height: 100vh; }
+        h2 { margin: 10px 0 5px 0; color: #f1c40f; text-transform: uppercase; letter-spacing: 1px; }
+        .mode-badge { background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; margin-bottom: 20px; display: inline-block; border: 1px solid rgba(255,255,255,0.3); }
+        .hand-container { display: flex; flex-direction: column; gap: 15px; padding-bottom: 50px; }
+        .card-btn { background: white; color: #2c3e50; border: none; padding: 20px; border-radius: 15px; font-size: 0.85rem; font-weight: 600; text-align: left; cursor: pointer; border-left: 8px solid #3498db; box-shadow: 0 4px 10px rgba(0,0,0,0.2); width: 100%; box-sizing: border-box; line-height: 1.4; opacity: 0; animation: slideIn 0.5s forwards; }
+        @keyframes slideIn { to { opacity: 1; transform: translateY(0); } from { opacity: 0; transform: translateY(10px); } }
+        .card-btn:active { transform: scale(0.97); background: #ecf0f1; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(44, 62, 80, 0.98); z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
+        #status-bar { position: fixed; bottom: 5px; right: 5px; font-size: 0.7rem; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+    <h2>Pilih Respon</h2>
+    <div class="mode-badge" id="modeDisplay">Menunggu Host...</div>
+
+    <div class="hand-container" id="hand">
+        <div style="color:#bdc3c7; margin-top: 50px;">
+            <p>Sedang menyemak situasi...</p>
+        </div>
+    </div>
+
+    <div class="overlay" id="waitScreen">
+        <div style="font-size:4rem;">🚀</div>
+        <h3>Dihantar!</h3>
+        <p>Tunggu soalan seterusnya.</p>
+    </div>
+    
+    <div id="status-bar">v5.0 Connected</div>
+
+    <script>
+        const scriptUrl = 'https://script.google.com/macros/s/AKfycbyrG2sYahHnR1e5V1Qz1hw-4hY6jQ7Nvt66o3k6I1tiDcO6BQc82Zr6XhYZ33TYtpKgrw/exec';
+
+        // === DECK LENGKAP MENGIKUT TAG (12 SITUASI) ===
+        const decks = {
+            age: [
+                "Saya faham awak mungkin risau sama ada saya boleh bantu awak dengan baik.",
+                "Saya faham kebimbangan itu. Pada masa yang sama, saya nak kita berbincang dengan cara yang saling menghormati supaya sesi ini boleh membantu awak.",
+                "Umur saya tak ada kena-mengena dengan kelayakan saya.",
+                "Bunyi macam awak perlukan keyakinan sebelum teruskan sesi ini.",
+                "Bila ayat itu disebut, ia boleh terasa merendahkan. Saya nak pastikan kita kekal dalam ruang yang saling menghormati.",
+                "Awak tak patut cakap macam tu pada saya, saya ada sarjana tau.",
+                "Saya dengar awak nak pastikan sesi ini berbaloi untuk awak.",
+                "Saya ingin teruskan sesi ini dengan fokus pada keperluan awak, tanpa menilai berdasarkan umur atau label.",
+                "Kalau awak ragu-ragu, awak boleh cari kaunselor lain.",
+                "Masuk akal kalau awak nak rasa yakin dengan orang yang awak jumpa.",
+                "Saya boleh jelaskan peranan dan pengalaman saya, dan pada masa yang sama saya perlukan cara bercakap yang tidak merendahkan supaya sesi ini kekal selamat.",
+                "Saya tak perlu buktikan apa-apa pada awak."
+            ],
+            gender: [
+                "Saya faham mungkin awak maksudkan saya lebih ekspresif.",
+                "Bila ayat itu digunakan, ia boleh terasa seperti satu andaian. Saya nak kita berbincang dengan cara yang saling menghormati.",
+                "Tak semua perempuan emosional, itu stereotaip.",
+                "Saya dengar awak mungkin risau saya terlalu terlibat secara emosi.",
+                "Ayat itu boleh menjejaskan kepercayaan dalam sesi. Saya mahu kita kekal fokus pada isu, bukan label.",
+                "Awak tak patut cakap macam tu pada saya.",
+                "Saya faham awak nak pastikan sesi ini objektif dan membantu.",
+                "Saya komited untuk membantu awak secara profesional, dan pada masa yang sama saya perlu kita elakkan andaian berasaskan jantina.",
+                "Kalau awak tak yakin, kita tak perlu teruskan sesi.",
+                "Masuk akal kalau awak nak rasa selesa dengan gaya kaunselor.",
+                "Saya boleh teruskan sesi ini dengan baik, dan itu memerlukan cara bercakap yang tidak merendahkan berdasarkan jantina.",
+                "Saya tak rasa perlu jelaskan diri saya hanya kerana saya perempuan."
+            ],
+            power: [
+                "Saya faham awak nak pastikan sesi ini beri manfaat.",
+                "Saya ingin sokong awak, dan pada masa yang sama saya perlu jaga proses supaya sesi ini selamat dan berkesan.",
+                "Kalau macam tu, awak tak faham fungsi kaunseling.",
+                "Bunyi macam awak perlukan rasa kawalan dalam sesi ini.",
+                "Ayat itu meletakkan tekanan pada saya. Saya mahu kita bekerjasama, bukan mengawal satu sama lain.",
+                "Saya tak bekerja ikut kehendak klien.",
+                "Saya dengar awak mahu hasil yang jelas.",
+                "Kita boleh capai hasil yang baik bila kita bekerjasama dalam peranan masing-masing.",
+                "Kalau awak nak arahkan, ini bukan tempatnya.",
+                "Masuk akal kalau awak nak rasa sesi ini berbaloi.",
+                "Saya boleh teruskan sesi ini, tetapi dengan cara yang saling menghormati peranan masing-masing.",
+                "Saya tak akan ikut arahan klien."
+            ],
+            culture: [
+                "Saya faham awak cuba memahami konteks saya.",
+                "Ayat itu agak umum. Saya lebih ingin dengar pengalaman saya sebagai individu.",
+                "Jangan buat andaian tentang budaya saya.",
+                "Bunyi macam awak cuba cari penjelasan.",
+                "Bila budaya digeneralisasikan, ia boleh menutup cerita sebenar seseorang.",
+                "Itu stereotaip.",
+                "Saya dengar keinginan awak untuk faham latar belakang.",
+                "Saya lebih selesa bila kita bercakap tentang pengalaman spesifik, bukan budaya secara umum.",
+                "Budaya saya bukan macam tu.",
+                "Masuk akal kalau awak cuba buat sambungan.",
+                "Saya nak pastikan kita elakkan andaian dan fokus pada cerita sebenar.",
+                "Awak tak patut cakap macam tu."
+            ],
+            trauma: [
+                "Saya faham awak mungkin bandingkan dengan pengalaman lain.",
+                "Setiap pengalaman memberi kesan berbeza, dan pengalaman awak tetap sah.",
+                "Awak tak layak tentukan apa itu trauma.",
+                "Saya dengar awak cuba letakkan perspektif.",
+                "Perbandingan begitu boleh buat seseorang rasa pengalamannya tidak penting.",
+                "Awak tak faham trauma.",
+                "Bunyi macam awak cuba kuatkan diri.",
+                "Dalam sesi ini, kita fokus pada apa yang memberi kesan kepada awak, bukan perbandingan.",
+                "Itu pandangan yang salah.",
+                "Saya faham awak cuba rasionalisasikan.",
+                "Saya perlu jaga supaya pengalaman awak tidak diperkecilkan dalam ruang ini.",
+                "Jangan kecilkan trauma orang."
+            ],
+            intent: [
+                "Saya faham awak cuba melihat niat di sebalik apa yang berlaku.",
+                "Pada masa yang sama, walaupun niatnya mungkin tidak jahat, kesannya pada awak tetap penting untuk difahami.",
+                "Kalau niat dia baik, tak perlulah kita fokus sangat pada benda ni.",
+                "Bunyi macam awak cuba menenangkan diri dengan cara itu.",
+                "Bila kita terlalu fokus pada niat, kesan yang awak alami boleh terabai. Saya nak pastikan pengalaman awak tidak diperkecilkan.",
+                "Awak mungkin terlalu sensitif tentang perkara ni.",
+                "Saya dengar awak cuba berlaku adil dalam menilai situasi ini.",
+                "Kita boleh akui niat orang lain, dan pada masa yang sama beri ruang pada apa yang awak rasa dan alami.",
+                "Kalau awak asyik fikir macam ni, susah nak move on.",
+                "Masuk akal kalau awak tak mahu membesarkan perkara ini.",
+                "Dalam sesi ini, saya nak pastikan kita tidak menutup pengalaman awak hanya kerana ia kelihatan ‘kecil’ atau tidak disengajakan.",
+                "Kita tak perlu panjangkan isu yang remeh."
+            ],
+            similarity: [
+                "Saya faham awak cuba mencari persamaan dengan saya.",
+                "Walaupun ada persamaan, saya ingin dengar pengalaman awak sendiri tanpa mengandaikan ia sama dengan orang lain.",
+                "Tak semestinya pengalaman kita sama.",
+                "Bunyi macam awak berharap saya boleh relate.",
+                "Saya nak pastikan pengalaman awak didengar sepenuhnya, bukan disamakan.",
+                "Jangan anggap saya faham hanya sebab kita sama.",
+                "Saya faham kalau awak rasa lebih selesa dengan persamaan itu.",
+                "Persamaan boleh bantu, tapi saya tak mahu ia menutup cerita awak.",
+                "Itu bukan alasan untuk buat andaian.",
+                "Saya dengar keinginan awak untuk difahami.",
+                "Saya ingin kekal terbuka untuk memahami pengalaman awak sebagai individu.",
+                "Kita tak sama sebenarnya."
+            ],
+            tone: [
+                "Saya faham kemarahan itu datang dari rasa terluka.",
+                "Perasaan awak penting, dan kita boleh bincang tanpa perlu menekan emosi itu.",
+                "Kalau awak marah macam ni, susah saya nak bantu.",
+                "Bunyi macam emosi awak sedang sangat kuat sekarang.",
+                "Saya nak kita beri ruang pada emosi ini tanpa menilai cara ia diluahkan.",
+                "Awak kena tenang dulu.",
+                "Saya faham kalau awak rasa sangat marah.",
+                "Kemarahan ini memberi maklumat penting tentang apa yang awak lalui.",
+                "Nada macam ni tak membantu.",
+                "Saya dengar betapa beratnya perkara ini.",
+                "Kita boleh beri ruang pada perasaan ini,saya ada bersama awak",
+                "Saya tak boleh terima cara awak bercakap."
+            ],
+            gaslight: [
+                "Saya faham itu yang awak rasakan.",
+                "Walaupun niat saya bukan begitu, kesannya tetap penting untuk kita lihat.",
+                "Awak salah faham.",
+                "Bunyi macam ayat itu beri kesan pada awak.",
+                "Saya nak berhenti sekejap dan perhatikan apa yang berlaku antara kita.",
+                "Saya tak cakap pun macam tu.",
+                "Saya dengar awak rasa tidak dihormati.",
+                "Apa yang awak rasa valid untuk diterokai di sini.",
+                "Awak terlalu sensitif.",
+                "Saya faham ini buat awak tidak selesa.",
+                "Mari kita lihat semula ayat itu dan kesannya.",
+                "Itu cuma perasaan awak."
+            ],
+            blame: [
+                "Bunyi macam awak sangat penat mencuba.",
+                "Saya ingin faham apa yang buat awak rasa usaha itu terasa tidak berhasil.",
+                "Mungkin awak tak buat dengan betul.",
+                "Saya dengar banyak kekecewaan di situ.",
+                "Kita boleh lihat halangan tanpa menyalahkan diri awak.",
+                "Kalau awak betul-betul ikut cadangan, hasilnya lain.",
+                "Saya faham kalau awak rasa putus asa.",
+                "Kita boleh teliti bersama apa yang menyukarkan perubahan itu.",
+                "Awak sendiri yang sabotaj diri.",
+                "Saya faham usaha itu berat.",
+                "Saya mahu kita fahami proses ini, bukan mencari salah.",
+                "Awak belum cukup usaha."
+            ],
+            moral: [
+                "Perasaan itu boleh jadi sangat mengelirukan.",
+                "Perasaan tidak menentukan nilai diri awak.",
+                "Tak baik marah keluarga.",
+                "Saya dengar konflik emosi yang berat.",
+                "Kita boleh bincang perasaan tanpa menilai betul atau salah.",
+                "Awak patut bersyukur.",
+                "Saya dengar perasaan awak agak bercampur-baur sekarang.",
+                "Emosi ini ada sebabnya, dan ia bukan satu kesalahan.",
+                "Itu cara fikir yang tak sihat.",
+                "Saya faham rasa bersalah itu.",
+                "Ruang ini selamat untuk kita teroka perasaan tanpa penghakiman.",
+                "Awak salah bila rasa macam ni."
+            ],
+            minimise: [
+                "Saya dengar awak cuba letakkan perkara ini dalam perspektif.",
+                "Walaupun orang lain mungkin mengalaminya berbeza, apa yang awak rasa sekarang tetap penting untuk difahami.",
+                "Ya, ramai orang boleh lalui benda ni tanpa isu.",
+                "Bunyi macam awak cuba menyalahkan diri sendiri.",
+                "Bila pengalaman kita dibandingkan dengan orang lain, kesannya pada diri kita boleh terabai. Saya nak kita beri ruang pada pengalaman awak.",
+                "Mungkin awak terlalu fikir.",
+                "Saya dengar keraguan tentang sama ada perasaan ini ‘wajar’ atau tidak.",
+                "Dalam sesi ini, kita tak ukur pengalaman ikut piawaian orang lain—kita fahami apa maknanya untuk awak.",
+                "Kalau awak kuat sikit, benda ni tak jadi isu.",
+                "Saya faham kalau awak tak mahu nampak berlebihan.",
+                "Saya mahu pastikan pengalaman awak tidak diperkecilkan di sini, walaupun ia kelihatan biasa pada orang lain.",
+                "Kita tak perlu fokus pada perkara kecil."
+            ]
+        };
+
+        let currentTag = "";
+        let timeoutId = null;
+
+        function startPolling() {
+            const randomDelay = 2000 + Math.random() * 1000;
+            timeoutId = setTimeout(() => {
+                checkContext();
+            }, randomDelay);
+        }
+
+        function checkContext() {
+            const antiCache = "&t=" + new Date().getTime();
+            
+            fetch(`${scriptUrl}?action=get_context${antiCache}`)
+                .then(r => r.text())
+                .then(tag => {
+                    tag = tag.trim();
+                    document.getElementById('status-bar').style.color = "#2ecc71";
+                    
+                    if (tag !== currentTag && decks[tag]) {
+                        currentTag = tag;
+                        document.getElementById('modeDisplay').innerText = "Kategori: " + tag.toUpperCase();
+                        document.getElementById('waitScreen').style.display = 'none'; 
+                        renderHand(tag);
+                    }
+                    startPolling();
+                })
+                .catch(e => {
+                    console.log("Retrying...");
+                    document.getElementById('status-bar').style.color = "#e74c3c";
+                    startPolling();
+                });
+        }
+
+        function renderHand(tag) {
+            const container = document.getElementById('hand');
+            container.innerHTML = '';
+            
+            // Ambil 3 kad rawak dari deck kategori tersebut
+            const chosenDeck = decks[tag] || decks['age']; 
+            const myCards = [...chosenDeck].sort(() => 0.5 - Math.random()).slice(0, 3);
+
+            myCards.forEach((text, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'card-btn';
+                btn.innerText = text;
+                btn.style.animationDelay = (i * 0.1) + 's';
+                btn.onclick = () => submitCard(text);
+                container.appendChild(btn);
+            });
+        }
+
+        function submitCard(text) {
+            document.getElementById('waitScreen').style.display = 'flex';
+            fetch(`${scriptUrl}?action=submit&text=${encodeURIComponent(text)}`, { 
+                method: 'POST', mode: 'no-cors' 
+            });
+        }
+
+        checkContext();
+    </script>
+</body>
+</html>
