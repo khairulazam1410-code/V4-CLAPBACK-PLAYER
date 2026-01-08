@@ -20,25 +20,20 @@
 
     <h2>Pilih Respon</h2>
     <div class="mode-badge" id="modeDisplay">Menunggu Host...</div>
-
     <div class="hand-container" id="hand">
-        <div style="color:#bdc3c7; margin-top: 50px;">
-            <p>Sedang menyemak situasi...</p>
-        </div>
+        <div style="color:#bdc3c7; margin-top: 50px;"><p>Sedang menyemak situasi...</p></div>
     </div>
-
     <div class="overlay" id="waitScreen">
         <div style="font-size:4rem;">🚀</div>
         <h3>Dihantar!</h3>
         <p>Tunggu soalan seterusnya.</p>
     </div>
-    
-    <div id="status-bar">v5.0 Connected</div>
+    <div id="status-bar">v6.0 Sync Ready</div>
 
     <script>
         const scriptUrl = 'https://script.google.com/macros/s/AKfycbyrG2sYahHnR1e5V1Qz1hw-4hY6jQ7Nvt66o3k6I1tiDcO6BQc82Zr6XhYZ33TYtpKgrw/exec';
 
-        // === DECK LENGKAP MENGIKUT TAG (12 SITUASI) ===
+        // 12 DECK (TAG MESTI SAMA DENGAN HOST)
         const decks = {
             age: [
                 "Saya faham awak mungkin risau sama ada saya boleh bantu awak dengan baik.",
@@ -207,6 +202,20 @@
                 "Saya faham kalau awak tak mahu nampak berlebihan.",
                 "Saya mahu pastikan pengalaman awak tidak diperkecilkan di sini, walaupun ia kelihatan biasa pada orang lain.",
                 "Kita tak perlu fokus pada perkara kecil."
+            ],
+            competence: [
+                "Saya faham awak mahukan sesuatu yang praktikal.",
+                "Kita boleh terjemahkan teori kepada langkah yang lebih praktikal untuk awak.",
+                "Kalau awak tak percaya teori, susah nak bantu.",
+                "Bunyi macam awak kecewa dengan pendekatan ini.",
+                "Teori membantu kita faham corak, tapi kita tetap fokus pada keperluan awak.",
+                "Teori ni asas kaunseling.",
+                "Saya dengar awak perlukan hasil yang lebih jelas.",
+                "Apa yang praktikal bagi awak sekarang? Kita boleh mula dari situ.",
+                "Awak terlalu cepat menilai.",
+                "Masuk akal kalau awak rasa tak sabar.",
+                "Saya mahu pastikan apa yang kita bincangkan boleh digunakan dalam hidup awak.",
+                "Kalau awak tak suka cara ni, itu masalah awak."
             ]
         };
 
@@ -214,15 +223,12 @@
         let timeoutId = null;
 
         function startPolling() {
-            const randomDelay = 2000 + Math.random() * 1000;
-            timeoutId = setTimeout(() => {
-                checkContext();
-            }, randomDelay);
+            const randomDelay = 2000 + Math.random() * 1500;
+            timeoutId = setTimeout(() => { checkContext(); }, randomDelay);
         }
 
         function checkContext() {
             const antiCache = "&t=" + new Date().getTime();
-            
             fetch(`${scriptUrl}?action=get_context${antiCache}`)
                 .then(r => r.text())
                 .then(tag => {
@@ -248,8 +254,7 @@
             const container = document.getElementById('hand');
             container.innerHTML = '';
             
-            // Ambil 3 kad rawak dari deck kategori tersebut
-            const chosenDeck = decks[tag] || decks['age']; 
+            const chosenDeck = decks[tag]; 
             const myCards = [...chosenDeck].sort(() => 0.5 - Math.random()).slice(0, 3);
 
             myCards.forEach((text, i) => {
